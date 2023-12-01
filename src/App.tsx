@@ -22,6 +22,7 @@ interface StockData {
 const StockDataComponent: React.FC = () => {
   const [stockData, setStockData] = useState<StockData | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -38,11 +39,17 @@ const StockDataComponent: React.FC = () => {
     fetchData();
   }, []);
 
-  const itemsPerPage = 10; // You can adjust this value based on your preference
+  const itemsPerPage = 10;
 
   const offset = currentPage * itemsPerPage;
 
-  const currentItems = Object.entries(stockData?.['Time Series (5min)'] || {})
+  const filteredData = Object.entries(stockData?.['Time Series (5min)'] || {})
+    .filter(([timestamp, data]) =>
+      Object.values(data)
+        .join(' ')
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase())
+    )
     .slice(offset, offset + itemsPerPage)
     .map(([timestamp, data]) => (
       <tr key={timestamp}>
@@ -63,11 +70,25 @@ const StockDataComponent: React.FC = () => {
     setCurrentPage(selectedPage.selected);
   };
 
+  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(event.target.value);
+    setCurrentPage(0); // Reset to the first page when the search query changes
+  };
+
   return (
     <div>
       {stockData ? (
         <div>
           <h2 className="text-2xl font-bold mb-4">Most recent 100 intraday </h2>
+          <div className="mb-4">
+            <label className="mr-2">Search:</label>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={handleSearchChange}
+              className="border p-2"
+            />
+          </div>
           <p>
             Symbol: <strong>{stockData['Meta Data']['2. Symbol']}</strong>
           </p>
@@ -86,7 +107,7 @@ const StockDataComponent: React.FC = () => {
                 <th className="py-2 px-4 border-b text-left">Volume</th>
               </tr>
             </thead>
-            <tbody>{currentItems}</tbody>
+            <tbody>{filteredData}</tbody>
           </table>
           <ReactPaginate
             previousLabel={'Previous'}
